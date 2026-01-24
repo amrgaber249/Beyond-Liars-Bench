@@ -24,8 +24,6 @@ class Message:
 
 Dialogue = List[Message]
 
-# We will quantize with bitsandbytes instead of loading a pre-quantized checkpoint
-USE_BNB_4BIT = True
 
 print("Importing sklearn components")
 from sklearn.linear_model import LogisticRegression
@@ -43,13 +41,12 @@ from sklearn.metrics import (
 MODEL_ID="distilgpt2"  # smaller model for testing
 MODEL_ID = "meta-llama/Llama-3.3-70B-Instruct"
 DRY_RUN = False  # True -> quick synthetic features; False -> attempt to load MODEL_ID
+# We will quantize with bitsandbytes instead of loading a pre-quantized checkpoint
+QUANT_TYPE = "4bit"  # "" for no quantization, "4bit" or "8bit"
 MAX_MODEL_LEN = 1024  # Modest context to reduce VRAM
 # Available configs for "Cadenza-Labs/liars-bench":
 # ['alpaca', 'convincing-game', 'gender-secret', 'harm-pressure-choice', 'harm-pressure-knowledge-report', 'insider-trading', 'instructed-deception', 'soft-trigger']
-SELECT_DATASETS = [
-    "convincing-game",
-    "gender-secret",
-]  # keys (or local jsonl paths) - synthetic data created if file not found
+SELECT_DATASETS = ['alpaca', 'convincing-game', 'gender-secret', 'harm-pressure-choice', 'harm-pressure-knowledge-report', 'insider-trading', 'instructed-deception', 'soft-trigger'] 
 MAX_EXAMPLES_PER_DATASET = 300
 LAYER_TO_EXTRACT = -1
 PROBE_C = 1.0
@@ -255,12 +252,6 @@ def safe_load_model(model_id, device="cpu", try_fp16=False, max_model_len=512):
         print(
             "Loading model with transformers + bitsandbytes 4-bit (device_map=auto)..."
         )
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=USE_BNB_4BIT,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16 if try_fp16 else torch.float16,
-        )
         max_mem = None
         if device == "cuda" and torch.cuda.is_available():
             gpu_count = torch.cuda.device_count()
@@ -270,8 +261,23 @@ def safe_load_model(model_id, device="cpu", try_fp16=False, max_model_len=512):
         kwargs = {
             "output_hidden_states": True,
             "trust_remote_code": True,
-            "quantization_config": bnb_config,
         }
+        if QUANT_TYPE in ("4bit", "8bit"):
+            if QUANT_TYPE == "4bit":
+                kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16 if try_fp16 else torch.float16,
+            )
+            elif QUANT_TYPE == "8bit":
+                kwargs["quantization_config"] = BitsAndBytesConfig(
+                    load_in_8bit=True,
+                    bnb_8bit_compute_dtype=torch.bfloat16 if try_fp16 else torch.float16,
+                    bnb_8bit_use_double_quant=True,
+                    bnb_8bit_quant_type="nf4",
+                )
+            
         if max_mem:
             kwargs["max_memory"] = max_mem
             kwargs["device_map"] = "auto"
