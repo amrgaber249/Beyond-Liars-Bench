@@ -18,22 +18,30 @@ from sklearn.metrics import roc_auc_score, roc_curve
 
 # Transformers
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from enum import Enum
 
 # ==========================================
 #               CONFIGURATION
 # ==========================================
 
+
+class QuantizationType(Enum):
+    FOUR_BIT = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4")
+    EIGHT_BIT = BitsAndBytesConfig(load_in_8bit=True, bnb_8bit_compute_dtype=torch.float16)
+    NONE = None
+
 @dataclass
 class ExperimentConfig:
     # --- Input Paths ---
-    TRAIN_PATH: str = "./data/train_csvs"   
-    EVAL_PATH: str = "./data/eval_jsonls"
+    TRAIN_PATH: str = "./train_data_azaria_mitchell"    
+    EVAL_PATH: str = "./eval_data_liars_bench"
     OUTPUT_DIR: str = "./results"           # Folder to save plots and CSVs
     
     # --- Model Configuration ---
+    # Other models: "meta-llama/Llama-3.3-70B-Instruct"
     MODEL_ID: str = "mistralai/Mistral-7B-Instruct-v0.2"
     DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
-    USE_4BIT: bool = True
+    QUANTIZATION: Optional[BitsAndBytesConfig] = QuantizationType.FOUR_BIT.value  # Options: QuantizationType.FOUR_BIT.value, QuantizationType.EIGHT_BIT.value, or None (no quantization)
     MAX_MODEL_LEN: int = 2048
     
     # --- Probing Hyperparameters ---
@@ -44,7 +52,7 @@ class ExperimentConfig:
     SEED: int = 42
     
     # --- Execution Flags ---
-    DRY_RUN: bool = True
+    DRY_RUN: bool = True                    # If True, runs a quick test with synthetic data
     LLM_BATCH_SIZE: int = 4                 # Batch size for LLM activation extraction
 
     # --- Probe Selection ---
@@ -195,8 +203,7 @@ def load_model():
     if CONFIG.DRY_RUN: return None, None
     tokenizer = AutoTokenizer.from_pretrained(CONFIG.MODEL_ID, trust_remote_code=True)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
-    bnb_config = BitsAndBytesConfig(load_in_4bit=CONFIG.USE_4BIT, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4")
-    model = AutoModelForCausalLM.from_pretrained(CONFIG.MODEL_ID, quantization_config=bnb_config if CONFIG.USE_4BIT else None, device_map="auto", trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(CONFIG.MODEL_ID, quantization_config=CONFIG.QUANTIZATION, device_map="auto", trust_remote_code=True)
     return tokenizer, model
 
 def get_activations(tokenizer, model, data: List[Dict], layer_idx: int, method: str = "mean"):
@@ -337,8 +344,11 @@ def run_pipeline():
     if model: target_layer = int(model.config.num_hidden_layers * CONFIG.LAYER_PERCENTILE)
 
     # --- 1. Train Generic Probes ---
+    print("\n--- Training Generic Probes ---")
     probes = {}
+    print("\nLoading Training Data...")
     train_data = load_train_data(CONFIG.TRAIN_PATH)
+    print(f"Loaded {len(train_data)} training samples.")
     
     if train_data:
         # A. PyTorch Mean Probe (With Loss Plot)
@@ -374,6 +384,7 @@ def run_pipeline():
             plot_loss_curve(p.loss_history, "Follow-up Probe", "loss_followup_probe.png")
 
     # --- 2. Evaluate Datasets ---
+    print("\n--- Evaluating on Datasets ---")
     eval_datasets = load_eval_datasets(CONFIG.EVAL_PATH)
     final_results = []
     
@@ -415,7 +426,7 @@ def run_pipeline():
         y_true_subset = y_test[test_indices]
         
         # Helper to process probe
-        def process_probe(key, probe_obj, inputs, method_label):
+        def process_probe(key, probe_obj: PyTorchLinearProbe, inputs, method_label):
             scores = probe_obj.predict_score(inputs)
             
             # ROC / Metrics
