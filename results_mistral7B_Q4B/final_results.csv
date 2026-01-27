@@ -1,0 +1,20 @@
+Dataset,Method,AUROC
+Cadenza-Labs_liars-bench_alpaca_test,Mean Probe,
+Cadenza-Labs_liars-bench_alpaca_test,Mass-Mean,
+Cadenza-Labs_liars-bench_alpaca_test,Follow-up,
+Cadenza-Labs_liars-bench_convincing-game_test,Mean Probe,0.7888364104765992
+Cadenza-Labs_liars-bench_convincing-game_test,Mass-Mean,0.6914555603263203
+Cadenza-Labs_liars-bench_convincing-game_test,Follow-up,0.5604980678402748
+Cadenza-Labs_liars-bench_convincing-game_test,Upper Bound,0.9077715757835981
+Cadenza-Labs_liars-bench_gender-secret_test,Mean Probe,0.6318706850770047
+Cadenza-Labs_liars-bench_gender-secret_test,Mass-Mean,0.49208377588953794
+Cadenza-Labs_liars-bench_gender-secret_test,Follow-up,0.5784984067976633
+Cadenza-Labs_liars-bench_gender-secret_test,Upper Bound,0.9135853690918747
+Cadenza-Labs_liars-bench_harm-pressure-choice_test,Mean Probe,0.501370234641187
+Cadenza-Labs_liars-bench_harm-pressure-choice_test,Mass-Mean,0.4981446655110101
+Cadenza-Labs_liars-bench_harm-pressure-choice_test,Follow-up,0.5102474469034076
+Cadenza-Labs_liars-bench_harm-pressure-choice_test,Upper Bound,0.5240112929405327
+Cadenza-Labs_liars-bench_harm-pressure-knowledge-report_test,Mean Probe,0.604556606790226
+Cadenza-Labs_liars-bench_harm-pressure-knowledge-report_test,Mass-Mean,0.43144314023570324
+Cadenza-Labs_liars-bench_harm-pressure-knowledge-report_test,Follow-up,0.5005700782505542
+Cadenza-Labs_liars-bench_harm-pressure-knowledge-report_test,Upper Bound,0.6155541816673001
