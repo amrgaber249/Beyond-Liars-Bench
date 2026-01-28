@@ -1,3 +1,4 @@
+print("Handling imports...")
 import os
 import glob
 import json
@@ -20,11 +21,10 @@ from sklearn.metrics import roc_auc_score, roc_curve
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from enum import Enum
 
+print("Setting up configuration...")
 # ==========================================
 #               CONFIGURATION
 # ==========================================
-
-
 class QuantizationType(Enum):
     FOUR_BIT = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4")
     EIGHT_BIT = BitsAndBytesConfig(load_in_8bit=True, bnb_8bit_compute_dtype=torch.float16)
@@ -37,11 +37,12 @@ class ExperimentConfig:
     EVAL_PATH: str = "./eval_data_liars_bench"
     OUTPUT_DIR: str = "./results"           # Folder to save plots and CSVs
     
+    
     # --- Model Configuration ---
-    # Other models: "meta-llama/Llama-3.3-70B-Instruct"
-    MODEL_ID: str = "mistralai/Mistral-7B-Instruct-v0.2"
+    # Other models: "mistralai/Mistral-7B-Instruct-v0.2"
+    MODEL_ID: str = "meta-llama/Llama-3.3-70B-Instruct"
     DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
-    QUANTIZATION: Optional[BitsAndBytesConfig] = QuantizationType.FOUR_BIT.value  # Options: QuantizationType.FOUR_BIT.value, QuantizationType.EIGHT_BIT.value, or None (no quantization)
+    QUANTIZATION: str = QuantizationType.FOUR_BIT.name  # Options: FOUR_BIT, EIGHT_BIT, NONE
     MAX_MODEL_LEN: int = 2048
     
     # --- Probing Hyperparameters ---
@@ -52,7 +53,7 @@ class ExperimentConfig:
     SEED: int = 42
     
     # --- Execution Flags ---
-    DRY_RUN: bool = True                    # If True, runs a quick test with synthetic data
+    DRY_RUN: bool = False                    # If True, runs a quick test with synthetic data
     LLM_BATCH_SIZE: int = 4                 # Batch size for LLM activation extraction
 
     # --- Probe Selection ---
@@ -203,7 +204,8 @@ def load_model():
     if CONFIG.DRY_RUN: return None, None
     tokenizer = AutoTokenizer.from_pretrained(CONFIG.MODEL_ID, trust_remote_code=True)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(CONFIG.MODEL_ID, quantization_config=CONFIG.QUANTIZATION, device_map="auto", trust_remote_code=True)
+    quantization_config = QuantizationType[CONFIG.QUANTIZATION].value
+    model = AutoModelForCausalLM.from_pretrained(CONFIG.MODEL_ID, quantization_config=quantization_config, device_map="auto", trust_remote_code=True)
     return tokenizer, model
 
 def get_activations(tokenizer, model, data: List[Dict], layer_idx: int, method: str = "mean"):
