@@ -253,7 +253,6 @@ def load_model(model_id):
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=CONFIG.QUANTIZATION.value, device_map="auto" if CONFIG.DEVICE=="cuda" else None, trust_remote_code=True)
-    if CONFIG.QUANTIZATION == QuantizationType.NONE: model.to(CONFIG.DEVICE)
     return tokenizer, model
 
 def get_activations(tokenizer, model, data, layer_idx, method):
