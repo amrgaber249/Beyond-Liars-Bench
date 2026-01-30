@@ -154,8 +154,8 @@ def plot_score_distribution(y_true, y_scores, method_name, dataset_name, model_n
     honest_scores = y_scores[y_true == 0]
     lie_scores = y_scores[y_true == 1]
 
-    sns.histplot(honest_scores, color="green", label="Honest", kde=True, stat="density", alpha=0.3, element="step")
-    sns.histplot(lie_scores, color="red", label="Lie", kde=True, stat="density", alpha=0.3, element="step")
+    sns.histplot(honest_scores, color="green", label="Honest", kde=True, stat="probability", alpha=0.3, element="step")
+    sns.histplot(lie_scores, color="red", label="Lie", kde=True, stat="probability", alpha=0.3, element="step")
 
     plt.title(f"Score Dist: {method_name} on {dataset_name}")
     plt.xlabel("Probe Lie Probability")
