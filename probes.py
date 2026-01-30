@@ -1,25 +1,38 @@
+print("Importing os")
 import os
+print("Importing glob")
 import glob
+print("Importing json")
 import json
+print("Importing random")
 import random
+print("Importing torch")
 import torch
 import torch.nn as nn
 import torch.optim as optim
+print("Importing numpy")
 import numpy as np
+print("Importing pandas")
 import pandas as pd
+print("Importing matplotlib.pyplot")
 import matplotlib.pyplot as plt
+print("Importing seaborn")
 import seaborn as sns
+print("Importing tqdm")
 from tqdm import tqdm
+print("Importing dataclasses and typing")
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Optional, Union
 from enum import Enum
 
 # --- ML Metrics ---
+print("Importing sklearn metrics and preprocessing")
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 # --- Transformers ---
+print("Importing transformers")
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 # ==========================================
@@ -41,11 +54,14 @@ class ExperimentConfig:
     OUTPUT_DIR: str = "./results_final"
 
     # --- Models to Benchmark ---
-    MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["distilgpt2"])
+    MODELS_TO_TEST: List[str] = field(default_factory=lambda: [
+        # "distilgpt2"
+        "meta-llama/Llama-3.3-70B-Instruct"
+    ])
 
     # --- Hardware ---
     DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
-    QUANTIZATION: QuantizationType = field(default=QuantizationType.NONE)
+    QUANTIZATION: QuantizationType = field(default=QuantizationType.EIGHT_BIT)
     MAX_MODEL_LEN: int = 1024
     LLM_BATCH_SIZE: int = 8
 
@@ -210,6 +226,7 @@ def format_chat(tokenizer, messages: List[Dict]) -> str:
     return text
 
 def load_train_data(path_str: str) -> List[Dict]:
+    """ Loads training data from CSV files. Expects 'statement' and 'label' with 0=Lie, 1=Truth. """
     if CONFIG.DRY_RUN: return [{"messages": [{"role":"user","content":"F"}], "label": 0}]*50 + [{"messages": [{"role":"user","content":"F"}], "label": 1}]*50
     files = get_files_from_path(path_str, ".csv")
     all_data = []
@@ -219,15 +236,18 @@ def load_train_data(path_str: str) -> List[Dict]:
             df.columns = [c.lower().strip() for c in df.columns]
             if 'statement' not in df.columns or 'label' not in df.columns: continue
             for _, row in df.iterrows():
+                # Train-Data contains facts labeled as Truth (1) or Lie (0)
+                # So for the Lie-Detection task, we invert the labels
                 all_data.append({
                     "messages": [{"role": "user", "content": "Tell me a fact."},
                                  {"role": "assistant", "content": str(row['statement'])}],
-                    "label": int(row['label'])
+                    "label": 1 - int(row['label']) # Assuming label 0=Lie, 1=Truth in CSV
                 })
         except: pass
     return all_data
 
 def load_eval_datasets(path_str: str) -> Dict[str, List[Dict]]:
+    """ Loads evaluation datasets from JSONL files. Expects 'messages' and ['deceptive' or 'label'] with 0=Honest, 1=Lie. """
     if CONFIG.DRY_RUN: return {"synthetic": [{"messages": [{"role":"assistant","content":"T"}], "label": 0}]*50 + [{"messages": [{"role":"assistant","content":"F"}], "label": 1}]*50}
     files = get_files_from_path(path_str, ".jsonl")
     datasets = {}
@@ -290,7 +310,11 @@ def get_activations(tokenizer, model, data, layer_idx, method):
                 valid_len = inputs.attention_mask[j].sum().item()
                 resp_txt = item["messages"][-1]["content"] if method != "followup_token" else "No"
                 resp_len = len(tokenizer(resp_txt, add_special_tokens=False).input_ids)
+                
 
+                # TODO: Shouldnt we extract the "No" based on its tokens instead of assuming last token?
+                # Since "No" could have multiple tokens in some tokenizers.
+                # Also: followup_token and last_token currently do the same thing.
                 if method == "followup_token":
                     # Last token ("No")
                     activations.append(hs[j, valid_len-1:valid_len, :].cpu().numpy())
@@ -302,6 +326,7 @@ def get_activations(tokenizer, model, data, layer_idx, method):
                     labels.append(item["label"])
                 else:
                     # Token-wise or Mean-pool logic
+                    # From start to valid_len represents the response of the model
                     start = max(0, valid_len - resp_len)
 
                     if method == "train_token_wise":
@@ -361,7 +386,9 @@ class PyTorchLogisticProbe(nn.Module):
             logits = self.linear(torch.tensor(X_scaled, dtype=torch.float32).to(CONFIG.DEVICE))
             probs = torch.sigmoid(logits).cpu().numpy()
         return probs.flatten()
+    
 
+# Direction of "lying" in embedding space and centroid means along that direction 
 class MassMeanProbe:
     def __init__(self):
         self.direction = None
@@ -398,6 +425,7 @@ def evaluate_model(model_name: str) -> Dict[str, Dict[str, Dict[str, float]]]:
     probes = {}
 
     # 1. Train Probes
+    # A. Mean Probes
     # Use the Configured Training Method (e.g., 'train_token_wise' or 'last_token')
     if "mean_probe" in CONFIG.SELECTED_PROBES or "mass_mean_probe" in CONFIG.SELECTED_PROBES:
         print(f"  > Extracting Training Activations ({CONFIG.TRAIN_ACTIVATION_METHOD})...")
