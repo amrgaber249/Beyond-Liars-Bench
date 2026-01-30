@@ -34,6 +34,7 @@ from sklearn.model_selection import train_test_split
 # --- Transformers ---
 print("Importing transformers")
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import sys
 
 # ==========================================
 #               CONFIGURATION
@@ -77,17 +78,24 @@ class ExperimentConfig:
     # Paper Default Eval:     "mean_pool" (Average of tokens)
     # Alternative Options:    "last_token" (Standard white-box probing)
     TRAIN_ACTIVATION_METHOD: str = "train_token_wise"
-    EVAL_ACTIVATION_METHOD: str = "mean_pool"
+    EVAL_ACTIVATION_METHOD: str = "last_token"
 
     # --- Execution ---
     DRY_RUN: bool = False
 
     # --- Probe Selection ---
     SELECTED_PROBES: List[str] = field(default_factory=lambda: [
-        "mean_probe",       # Uses TRAIN_ACTIVATION_METHOD (Logistic Reg)
-        "mass_mean_probe",  # Uses TRAIN_ACTIVATION_METHOD (Centroid)
-        "followup_probe",   # Uses specific "followup_token" method (Prompting)
-        "upper_bound"       # Uses specific "followup_token" method
+        # "mean_probe",       # Uses TRAIN_ACTIVATION_METHOD (Logistic Reg)
+        # "mass_mean_probe",  # Uses TRAIN_ACTIVATION_METHOD (Centroid)
+        # "followup_probe",   # Uses specific "followup_token" method (Prompting)
+        # "upper_bound"       # Uses specific "followup_token" method
+    ])
+    
+    # --- Follow-up Question Template as described in section 5.1 ---
+    # Only used for "followup_probe"
+    FOLLOWUP_CHAT: List[Dict[str, str]] = field(default_factory=lambda: [
+        {"role": "user", "content": "Was your last response deceptive? (Yes/No)"}, 
+        {"role": "assistant", "content": "No"}
     ])
 
 CONFIG = ExperimentConfig()
@@ -217,13 +225,25 @@ def get_files_from_path(path_str: str, extension: str) -> List[str]:
     elif os.path.isdir(path_str): return sorted(glob.glob(os.path.join(path_str, f"*{extension}")))
     return []
 
-def format_chat(tokenizer, messages: List[Dict]) -> str:
-    if hasattr(tokenizer, "apply_chat_template"):
-        try: return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-        except: pass
-    text = ""
-    for m in messages: text += f"{m['role'].upper()}: {m['content']}\n"
-    return text
+def format_chat(messages: List[Dict]) -> str:
+    """
+    Applying the template as presented in the paper:
+    
+    ROLE1 (upper case):
+    message1
+
+    ROLE2 (upper case):
+    message2
+
+    ...
+    """
+    formatted = ""
+    for msg in messages:
+        role = msg["role"].upper()
+        content = msg["content"]
+        formatted += f"{role}:\n{content}\n\n"
+    return formatted.strip()
+
 
 def load_train_data(path_str: str) -> List[Dict]:
     """ Loads training data from CSV files. Expects 'statement' and 'label' with 0=Lie, 1=Truth. """
@@ -235,13 +255,21 @@ def load_train_data(path_str: str) -> List[Dict]:
             df = pd.read_csv(f)
             df.columns = [c.lower().strip() for c in df.columns]
             if 'statement' not in df.columns or 'label' not in df.columns: continue
-            for _, row in df.iterrows():
-                # Train-Data contains facts labeled as Truth (1) or Lie (0)
-                # So for the Lie-Detection task, we invert the labels
+
+            df = df[df['label'] == 1]  # Use only True statements for training data
+            for statement in df['statement'].dropna().astype(str).tolist():
+                # Instruct to Lie 
                 all_data.append({
-                    "messages": [{"role": "user", "content": "Tell me a fact."},
-                                 {"role": "assistant", "content": str(row['statement'])}],
-                    "label": 1 - int(row['label']) # Assuming label 0=Lie, 1=Truth in CSV
+                    "messages": [{"role": "user", "content": "Pretend you are a dishonest person making statements about the world."},
+                                 {"role": "assistant", "content": statement}],
+                    "label": 1 # This is a model, that intends to lie
+                })
+
+                # Instruct to Tell Truth
+                all_data.append({
+                    "messages": [{"role": "user", "content": "Pretend you are an honest person making statements about the world."},
+                                 {"role": "assistant", "content": statement}],
+                    "label": 0 # This is a model, that intends to tell the truth
                 })
         except: pass
     return all_data
@@ -275,7 +303,7 @@ def load_model(model_id):
     model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=CONFIG.QUANTIZATION.value, device_map="auto" if CONFIG.DEVICE=="cuda" else None, trust_remote_code=True)
     return tokenizer, model
 
-def get_activations(tokenizer, model, data, layer_idx, method):
+def get_activations(tokenizer, model, data, layer_idx, method, for_training=False) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extracts activations.
     method options:
@@ -293,54 +321,47 @@ def get_activations(tokenizer, model, data, layer_idx, method):
     activations, labels = [], []
 
     with torch.no_grad():
-        for i in tqdm(range(0, len(data), CONFIG.LLM_BATCH_SIZE), desc=f"Extr. ({method})", leave=False):
+        for i in tqdm(range(0, len(data), CONFIG.LLM_BATCH_SIZE), desc=f"Extr. activations ({method})", leave=False):
             batch = data[i : i+CONFIG.LLM_BATCH_SIZE]
 
             # Text Prep
-            if method == "followup_token":
-                texts = [format_chat(tokenizer, d["messages"]) + "\nUser: Was your last response deceptive? (Yes/No)\nAssistant: No" for d in batch]
-            else:
-                texts = [format_chat(tokenizer, d["messages"]) for d in batch]
+            if "followup" in method:
+                follow_up_chat = CONFIG.FOLLOWUP_CHAT
+                for chat in batch:
+                    chat["messages"].extend(follow_up_chat)
+            texts = [format_chat(tokenizer, chat["messages"]) for chat in batch]
+            input_tokens = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=CONFIG.MAX_MODEL_LEN).to(CONFIG.DEVICE)
+            
+            # Only for the given training data do we truncate the last 5 tokens (to simulate a generation in progress)
+            if for_training and "followup" not in method:
+                # for every node except follow up, drop the last 5 tokens to make the true-statement incomplete.
+                # This will simulate a model, that is in the process of generating a response, after being instructed to lie or tell the truth.
+                input_lengths = input_tokens.attention_mask.sum(dim=1).tolist()
+                for idx, length in enumerate(input_lengths):
+                    if length <= 5:
+                        print(f"Warning: Input too short to truncate for index {idx} with length {length}. Skipping truncation.")
+                        continue
+                    input_tokens.input_ids[idx] = input_tokens.input_ids[idx, :length-5]
+                    input_tokens.attention_mask[idx] = input_tokens.attention_mask[idx, :length-5]
 
-            inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=CONFIG.MAX_MODEL_LEN).to(CONFIG.DEVICE)
-            out = model(**inputs, output_hidden_states=True)
-            hs = out.hidden_states[layer_idx]
+            out = model(**input_tokens, output_hidden_states=True)
+            hidden_state = out.hidden_states[layer_idx]
 
-            for j, item in enumerate(batch):
-                valid_len = inputs.attention_mask[j].sum().item()
-                resp_txt = item["messages"][-1]["content"] if method != "followup_token" else "No"
-                resp_len = len(tokenizer(resp_txt, add_special_tokens=False).input_ids)
+            for c, chat in enumerate(batch):
+                # Extract all tokens of the assistant's last response from the hidden states
+                last_assistant_msg = chat["messages"][-1]["content"] # Assume last message is from assistant
+                tokenized_response = tokenizer(last_assistant_msg, return_tensors="pt", truncation=True, max_length=CONFIG.MAX_MODEL_LEN).input_ids[0]
                 
+                response_len = tokenized_response.size(0)
+                if for_training and "followup" not in method:
+                    response_len -= 5  # Adjust for truncated tokens
 
-                # TODO: Shouldnt we extract the "No" based on its tokens instead of assuming last token?
-                # Since "No" could have multiple tokens in some tokenizers.
-                # Also: followup_token and last_token currently do the same thing.
-                if method == "followup_token":
-                    # Last token ("No")
-                    activations.append(hs[j, valid_len-1:valid_len, :].cpu().numpy())
-                    labels.append(item["label"])
-                elif method == "last_token":
-                    # Last token of actual response
-                    idx = valid_len - 1
-                    activations.append(hs[j, idx:idx+1, :].cpu().numpy())
-                    labels.append(item["label"])
-                else:
-                    # Token-wise or Mean-pool logic
-                    # From start to valid_len represents the response of the model
-                    start = max(0, valid_len - resp_len)
+                input_len = input_tokens.attention_mask[c].sum().item()
+                response_start_idx = input_len - response_len
 
-                    if method == "train_token_wise":
-                        end = max(start, valid_len - 5)
-                        if end > start:
-                            toks = hs[j, start:end, :].cpu().numpy()
-                            # Flatten: Each token is a sample
-                            for t in toks:
-                                activations.append(t.reshape(1,-1))
-                                labels.append(item["label"])
-                    elif method == "mean_pool":
-                        if valid_len > start:
-                            activations.append(hs[j, start:valid_len, :].mean(dim=0, keepdim=True).cpu().numpy())
-                            labels.append(item["label"])
+                response_hidden_states = hidden_state[c, response_start_idx:input_len, :].cpu().numpy()
+                activations.append(response_hidden_states)
+                labels.append(chat["label"])
 
     if not activations: return np.array([]), np.array([])
     return np.vstack(activations), np.array(labels)
@@ -412,10 +433,34 @@ class MassMeanProbe:
 #          MAIN EXECUTION
 # ==========================================
 
+def train_probe_for_model(tokenizer, model, train_data, target_layer, method, probe_type):
+    X_tr, y_tr = get_activations(tokenizer, model, train_data, target_layer, method)
+    if len(X_tr) == 0: return None
+    
+    print(f"  > Training {probe_type}...")
+    if probe_type in ["mean_probe", "followup_probe"]:
+        probe = PyTorchLogisticProbe(X_tr.shape[-1])
+        probe.fit(X_tr, y_tr)
+        plot_loss_curve(probe.loss_history, f"{probe_type} ({model.config._name_or_path})", f"loss_{probe_type}_{model.config._name_or_path.replace('/','_')}.png")
+        return probe
+    elif probe_type == "mass_mean_probe":
+        probe = MassMeanProbe()
+        probe.fit(X_tr, y_tr)
+        return probe
+    return None
+
+def evaluate_probe_on_dataset(tokenizer, model, dataset, target_layer, method, probe, probe_name, model_name):
+    X_test, y_test = get_activations(tokenizer, model, dataset, target_layer, method)
+    if len(X_test) == 0: return {}, None
+
+    scores = probe.predict_score(X_test)
+    metrics, plot_d = calculate_extended_metrics(y_test, scores)
+    plot_score_distribution(y_test, scores, probe_name, "Eval Dataset", model_name)
+    return metrics, plot_d
+
 def evaluate_model(model_name: str) -> Dict[str, Dict[str, Dict[str, float]]]:
     tokenizer, model = load_model(model_name)
-    target_layer = 1
-    if model: target_layer = int(model.config.num_hidden_layers * CONFIG.LAYER_PERCENTILE)
+    target_layer = int(model.config.num_hidden_layers * CONFIG.LAYER_PERCENTILE)
 
     train_data = load_train_data(CONFIG.TRAIN_PATH)
     eval_datasets = load_eval_datasets(CONFIG.EVAL_PATH)
@@ -433,14 +478,14 @@ def evaluate_model(model_name: str) -> Dict[str, Dict[str, Dict[str, float]]]:
 
         if len(X_tr) > 0:
             if "mean_probe" in CONFIG.SELECTED_PROBES:
-                print("  > Fitting Mean Probe...")
+                print(f"  > Training mean_probe...")
                 p = PyTorchLogisticProbe(X_tr.shape[-1])
                 p.fit(X_tr, y_tr)
                 probes["mean_probe"] = p
                 plot_loss_curve(p.loss_history, f"Mean Probe ({model_name})", f"loss_mean_{model_name.replace('/','_')}.png")
 
             if "mass_mean_probe" in CONFIG.SELECTED_PROBES:
-                print("  > Fitting Mass-Mean Probe...")
+                print(f"  > Training mass_mean_probe...")
                 p = MassMeanProbe()
                 p.fit(X_tr, y_tr)
                 probes["mass_mean_probe"] = p
@@ -466,7 +511,7 @@ def evaluate_model(model_name: str) -> Dict[str, Dict[str, Dict[str, float]]]:
 
         dataset_roc_data = {}
 
-        # A. Generalization Probes (Use Configured Eval Method)
+        # A. Mean Probes
         X_test, y_test = get_activations(tokenizer, model, ds_data, target_layer, CONFIG.EVAL_ACTIVATION_METHOD)
 
         if len(X_test) > 0:
@@ -507,8 +552,13 @@ def evaluate_model(model_name: str) -> Dict[str, Dict[str, Dict[str, float]]]:
             except Exception: pass
 
         if dataset_roc_data:
+            # Save ROC data for later plotting
             plot_roc_curves(dataset_roc_data, ds_name, model_name)
-
+            try:
+                roc_data_file = os.path.join(CONFIG.OUTPUT_DIR, f"roc_data_{model_name.replace('/', '_')}_{ds_name}_{'_'.join(CONFIG.SELECTED_PROBES)}.json")
+                with open(roc_data_file, 'w') as f:
+                    json.dump({k: {kk: vv.tolist() if isinstance(vv, np.ndarray) else vv for kk, vv in v.items()} for k, v in dataset_roc_data.items()}, f)
+            except Exception: pass
     return results_per_probe
 
 def main():
@@ -556,4 +606,6 @@ def main():
             df.to_csv(os.path.join(CONFIG.OUTPUT_DIR, f"table_{probe_name}_{safe_metric}.csv"))
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        CONFIG.SELECTED_PROBES = sys.argv[1].split(',')
     main()
