@@ -22,7 +22,10 @@ class ExperimentConfig:
     # --- Input Paths ---
     TRAIN_PATH: str = "./train_data_azaria_mitchell"
     EVAL_PATH: str = "./eval_data_liars_bench"
-    OUTPUT_DIR: str = "./results/non_contrastive_training"
+    CONTRASTIVE: bool = True
+
+    # --- Output Paths ---
+    OUTPUT_DIR: str = "./results/contrastive_training" if CONTRASTIVE else "./results/non_contrastive_training"
     OUT_PROBE_DIR: str = OUTPUT_DIR + "/{model_name}/probes"
     OUT_EVAL_DIR: str = OUTPUT_DIR + "/{model_name}/evaluation/{dataset_name}"
 
