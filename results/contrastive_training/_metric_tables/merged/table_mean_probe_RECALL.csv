@@ -1,0 +1,4 @@
+,Cadenza-Labs_liars-bench_convincing-game_test,Cadenza-Labs_liars-bench_gender-secret_test,Cadenza-Labs_liars-bench_harm-pressure-choice_test,Cadenza-Labs_liars-bench_harm-pressure-knowledge-report_test,AVERAGE
+distilgpt2,0.0,0.0,0.0,0.0,0.0
+AVERAGE,0.0,0.0,0.0,0.0,0.0
+meta-llama/Llama-3.3-70B-Instruct,0.18587360594795538,0.0,0.0,0.0,0.046468401486988845

@@ -28,8 +28,16 @@ fi
 # Load conda and activate environment
 echo "Loading conda and activating environment..."
 module load Miniforge3
+
+
+# DEBUG: Überprüfe welche Umgebung aktiv ist
+echo "Initializing conda..."
 source "$(conda info --base)/etc/profile.d/conda.sh" 
+conda deactivate
+
+echo "Loading conda environment 'lab-ai'..."
 conda activate lab-ai
+echo "Activated. Python version: $(python --version), python path: $(which python)"
 
 # Disable tokenizers parallelism to avoid issues
 export TOKENIZERS_PARALLELISM=false
