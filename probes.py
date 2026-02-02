@@ -523,7 +523,7 @@ def experiment():
                 X_train_ub, X_test_ub, y_train_ub, y_test_ub = train_test_split(X_test_fup, y_test_fup, test_size=0.2, random_state=CONFIG.SEED, stratify=y_test_fup)
 
             for probe_type in CONFIG.SELECTED_PROBES:
-                metrcs_data[probe_type] = {}
+                metrics_data[probe_type] = {}
                 roc_data[probe_type] = {}
 
                 X_test, y_test = X_test_full, y_test_full
