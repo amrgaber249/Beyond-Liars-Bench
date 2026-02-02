@@ -503,7 +503,10 @@ def experiment():
             os.makedirs(eval_dir, exist_ok=True)
 
             metrics_file = os.path.join(eval_dir, f"metrics.json")
+            metrics_data = {}
+
             roc_data_file = os.path.join(eval_dir, f"roc_data.json")
+            roc_data = {}
             if "alpaca" in model_name.lower():
                 print("  > Skipping evaluation on Alpaca for Alpaca-based model.")
                 continue
@@ -520,6 +523,9 @@ def experiment():
                 X_train_ub, X_test_ub, y_train_ub, y_test_ub = train_test_split(X_test_fup, y_test_fup, test_size=0.2, random_state=CONFIG.SEED, stratify=y_test_fup)
 
             for probe_type in CONFIG.SELECTED_PROBES:
+                metrcs_data[probe_type] = {}
+                roc_data[probe_type] = {}
+
                 X_test, y_test = X_test_full, y_test_full
 
                 if probe_type == "followup_probe":
@@ -532,17 +538,15 @@ def experiment():
                         probe = train_probe(probe_type, X_train_ub, y_train_ub, model_name, ds_name)
                 
                 probe = probes[probe_type]
-                metrics_d, plot_d = evaluate_probe_on_dataset(X_test, y_test, probe, probe_type, model_name, ds_name)                
+                metrics_data[probe_type], roc_data[probe_type] = evaluate_probe_on_dataset(X_test, y_test, probe, probe_type, model_name, ds_name)                
                 
                 # Export results
-                if plot_d:
-                    plot_roc_curves({probe_type: plot_d}, ds_name, model_name)
-                    with open(roc_data_file, 'w') as f:
-                        json.dump(serialize_dict(plot_d), f)
-                
-                if metrics_d:
-                    with open(metrics_file, 'w') as f:
-                        json.dump(serialize_dict(metrics_d), f)
+                plot_roc_curves(roc_data, ds_name, model_name)
+                with open(roc_data_file, 'w') as f:
+                    json.dump(serialize_dict(roc_data), f)
+            
+                with open(metrics_file, 'w') as f:
+                    json.dump(serialize_dict(metrics_data), f)
 def main():
     # Argument handling for selected probes
     if len(sys.argv) > 1:
