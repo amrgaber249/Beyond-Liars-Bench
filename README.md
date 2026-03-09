@@ -15,7 +15,7 @@ Run this in a Jupyter / Colab notebook cell. This will install the runtime depen
 
 ```bash
 pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes \
-  && pip install git+[https://github.com/AlignmentResearch/sae-lens.git](https://github.com/AlignmentResearch/sae-lens.git)
+  && pip install git+https://github.com/AlignmentResearch/sae-lens.git
 ```
 
 ---
@@ -62,7 +62,7 @@ python -m pip install --upgrade pip
 
 ```bash
 pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes
-pip install git+[https://github.com/AlignmentResearch/sae-lens.git](https://github.com/AlignmentResearch/sae-lens.git)
+pip install git+https://github.com/AlignmentResearch/sae-lens.git
 
 ```
 
@@ -85,7 +85,7 @@ accelerate>=0.20.0
 safetensors>=0.3.0
 bitsandbytes>=0.39.0
 # SAE: install from GitHub for latest gemma/sae support
-git+[https://github.com/AlignmentResearch/sae-lens.git](https://github.com/AlignmentResearch/sae-lens.git)
+git+https://github.com/AlignmentResearch/sae-lens.git
 
 ```
 
