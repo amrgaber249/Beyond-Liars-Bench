@@ -14,8 +14,7 @@ Run this in a Jupyter / Colab notebook cell. This will install the runtime depen
 > **Important:** `bitsandbytes` requires a supported CUDA toolkit / GPU runtime. If you run on CPU-only, remove it from the command.
 
 ```bash
-pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes \
-  && pip install git+https://github.com/AlignmentResearch/sae-lens.git
+pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes sae-lens
 ```
 
 ---
@@ -61,8 +60,7 @@ python -m pip install --upgrade pip
 **Option A: Direct One-Line Install (Quickest)**
 
 ```bash
-pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes
-pip install git+https://github.com/AlignmentResearch/sae-lens.git
+pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes sae-lens
 
 ```
 
@@ -84,8 +82,7 @@ joblib>=1.2.0
 accelerate>=0.20.0
 safetensors>=0.3.0
 bitsandbytes>=0.39.0
-# SAE: install from GitHub for latest gemma/sae support
-git+https://github.com/AlignmentResearch/sae-lens.git
+sae-lens>=6.37.6
 
 ```
 
