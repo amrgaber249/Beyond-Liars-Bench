@@ -27,8 +27,7 @@ Follow these steps to set up the pipeline on your local machine.
 
 ```bash
 git clone https://github.com/amrgaber249/Lab-AI-Alignment.git
-cd liars-bench
-
+cd Lab-AI-Alignment
 ```
 
 **2. Create a virtual environment**
