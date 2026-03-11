@@ -126,14 +126,18 @@ def evaluate_model(model_name: str):
                 pl = PyTorchLogisticProbe(X_tr.shape[-1])
                 pl.fit(X_tr, y_tr, model_name=model_name)
                 probes["logistic"] = pl
+                plot_loss_curve(pl.loss_history, f"Logistic Probe ({model_name})", f"loss_logistic_{model_name.replace('/','_')}.png")
             if "tpc" in CONFIG.SELECTED_PROBES:
                 pt = TruncatedPolynomialProbeWrapper(X_tr.shape[-1])
                 pt.fit(X_tr, y_tr, model_name=model_name)
                 probes["tpc"] = pt
+                plot_loss_curve(pt.loss_history, f"TPC Probe ({model_name})", f"loss_tpc_{model_name.replace('/','_')}.png")
             if "truth2d" in CONFIG.SELECTED_PROBES:
                 pt2 = TruthUniversal2DProbeWrapper(X_tr.shape[-1])
                 pt2.fit(X_tr, y_tr, model_name=model_name)
                 probes["truth2d"] = pt2
+                plot_loss_curve(pt2.loss_history, f"Truth2D Probe ({model_name})", f"loss_truth2d_{model_name.replace('/','_')}.png")
+            # (MassMean and INLP don't use iterative loss curves, so no plots needed for them)
             if "mass_mean" in CONFIG.SELECTED_PROBES:
                 pm = MassMeanProbe()
                 pm.fit(X_tr, y_tr)
@@ -159,6 +163,7 @@ def evaluate_model(model_name: str):
             pf = PyTorchLogisticProbe(X_fu.shape[-1])
             pf.fit(X_fu, y_fu, model_name=model_name, checkpoint_prefix="followup")
             probes["followup"] = pf
+            plot_loss_curve(pf.loss_history, f"Follow-up Probe ({model_name})", f"loss_followup_{model_name.replace('/','_')}.png")
 
     # 3. Evaluate Datasets
     for p_name in probes.keys():
