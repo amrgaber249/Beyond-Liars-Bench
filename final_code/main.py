@@ -11,6 +11,7 @@ import os
 import json
 import random
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from config import CONFIG
@@ -24,6 +25,44 @@ from probes import (
     PyTorchLogisticProbe, MassMeanProbe, INLPProbe, 
     TruncatedPolynomialProbeWrapper, TruthUniversal2DProbeWrapper
 )
+
+def generate_report(all_results):
+    """Converts the nested results dictionary into DataFrames, prints markdown, and saves CSVs."""
+    print_info("=== LIARS' BENCH: MULTI-METRIC REPORT ===")
+    
+    metric_order = [
+        "AUROC",
+        "BALANCEDACCURACYAT1%FPR", "BALANCEDACCURACYAT0.1%FPR", "BALANCEDACCURACYAT0.01%FPR",
+        "RECALL", "RECALLAT1%FPR", "RECALLAT0.1%FPR", "RECALLAT0.01%FPR",
+        "FPRAT1%FPR"
+    ]
+
+    for probe_name in all_results:
+        print(f"\n\n{'#'*30}\n   REPORT: {probe_name.upper()}\n{'#'*30}")
+        for metric in metric_order:
+            if metric not in all_results[probe_name]: continue
+
+            df = pd.DataFrame.from_dict(all_results[probe_name][metric], orient='index')
+            if df.empty: continue
+
+            # Sort and calculate averages
+            df = df.sort_index(axis=1)
+            df["AVERAGE"] = df.mean(axis=1)
+            col_means = df.mean(axis=0)
+            grand_mean = df["AVERAGE"].mean()
+            df.loc["AVERAGE"] = col_means
+            df.loc["AVERAGE", "AVERAGE"] = grand_mean
+
+            # Print to SLURM output log
+            print(f"\n>>> METRIC: {metric} <<<")
+            print(df.to_markdown(floatfmt=".4f"))
+
+            # Save to CSV in results_final
+            safe_metric = metric.replace("%", "pct")
+            csv_path = os.path.join(CONFIG.OUTPUT_DIR, f"table_{probe_name}_{safe_metric}.csv")
+            df.to_csv(csv_path)
+            print_info(f"Saved summary table to {csv_path}")
+
 
 def evaluate_model(model_name: str):
     """Executes the extraction and probing evaluation for a single model configuration."""
@@ -268,4 +307,5 @@ def main_pipeline():
     return all_results
 
 if __name__ == "__main__":
-    results = main_pipeline()
+    final_results = main_pipeline()
+    generate_report(final_results)
