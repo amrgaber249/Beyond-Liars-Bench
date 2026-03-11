@@ -16,8 +16,8 @@ class ExperimentConfig:
     # ==========================================
     # I/O Directories
     # ==========================================
-    TRAIN_PATH: str = "./train_data_azaria_mitchell"       # Directory containing training CSVs
-    EVAL_PATH: str = "./eval_data_liars_bench"             # Directory containing evaluation JSONL files
+    TRAIN_PATH: str = "../train_data_azaria_mitchell"       # Directory containing training CSVs
+    EVAL_PATH: str = "../eval_data_liars_bench"             # Directory containing evaluation JSONL files
     OUTPUT_DIR: str = "./results_final"                    # Where plots and metric summaries are saved
     ACTIVATION_CACHE_DIR: str = "./activation_cache"       # Directory for HDF5/Memmap large tensor storage
 
@@ -25,7 +25,7 @@ class ExperimentConfig:
     # Model Selection
     # ==========================================
     # List of HuggingFace model IDs to run in standard "Dense" mode (Path 1)
-    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["distilgpt2"])
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["mistralai/Mistral-Small-3.1-24B-Instruct-2503"])
     
     # List of HuggingFace model IDs to run through the Sparse Autoencoder pipeline (Path 2)
     SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-2b"])
@@ -35,8 +35,8 @@ class ExperimentConfig:
     # ==========================================
     # Fraction of the train/eval datasets to use. 
     # Use 1.0 for the final run, or a small float (e.g., 0.005) for quick debugging.
-    TRAIN_SAMPLE_PERCENTAGE: float = 0.005
-    EVAL_SAMPLE_PERCENTAGE: float = 0.005
+    TRAIN_SAMPLE_PERCENTAGE: float = 1
+    EVAL_SAMPLE_PERCENTAGE: float = 1
 
     # ==========================================
     # DolusChat Synthetic Data Integration

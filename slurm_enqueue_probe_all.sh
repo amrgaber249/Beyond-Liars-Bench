@@ -3,7 +3,7 @@
 
 #SBATCH --partition=A40short
 #SBATCH --time=08:00:00
-#SBATCH --gres=gpu:3
+#SBATCH --gres=gpu:2
 #SBATCH --ntasks=1
 
 #SBATCH --output="slurm_logs/slurm_%j.out"
@@ -32,9 +32,12 @@ else:
 echo "========================================"
 echo ""
 
+echo "Starting probe training script..."
+cd final_code
+python3 main.py
 
-echo "Starting extraction"
-python3 preload_extractions.py
+# echo "Starting extraction"
+# python3 preload_extractions.py
 
 # echo "Starting probe training script..."
 

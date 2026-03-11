@@ -11,6 +11,8 @@ import torch.nn as nn
 import numpy as np
 from typing import Tuple, Optional
 
+from transformers import AutoModelForImageTextToText, AutoProcessor
+
 from config import CONFIG
 from utils import print_info
 
@@ -40,23 +42,37 @@ def load_model(model_id: str, ignore_mismatched: bool = True):
     # Resolve HuggingFace access token for gated repos (like Google's Gemma)
     hf_kwargs = {"use_auth_token": CONFIG.HF_TOKEN} if CONFIG.HF_TOKEN else {}
     
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, **hf_kwargs)
-    if getattr(tokenizer, "pad_token", None) is None: 
-        tokenizer.pad_token = tokenizer.eos_token
-    
     # Let Accelerate figure out the device map if using GPU
     device_map = "auto" if CONFIG.DEVICE.startswith("cuda") else None
     
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id, 
-        quantization_config=bnb, 
-        device_map=device_map, 
-        trust_remote_code=True, 
-        torch_dtype=dtype, 
-        ignore_mismatched_sizes=ignore_mismatched, 
-        **hf_kwargs
-    )
-    
+
+    if "mistral" in model_id.lower():
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_id,
+            torch_dtype=torch.bfloat16,
+            device_map=device_map,
+            trust_remote_code=True,
+        )
+        model.eval()
+
+        processor = AutoProcessor.from_pretrained(model_id)
+        processor.tokenizer.chat_template = processor.chat_template
+        tokenizer = processor.tokenizer
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, **hf_kwargs)
+        if getattr(tokenizer, "pad_token", None) is None: 
+            tokenizer.pad_token = tokenizer.eos_token
+        
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, 
+            quantization_config=bnb, 
+            device_map=device_map, 
+            trust_remote_code=True, 
+            torch_dtype=dtype, 
+            ignore_mismatched_sizes=ignore_mismatched, 
+            **hf_kwargs
+        )
+        
     # Only force to device if accelerate didn't already map it
     if device_map is None:
         try: 
