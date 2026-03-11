@@ -208,7 +208,7 @@ def load_model(model_id):
         tokenizer = processor.tokenizer
         return tokenizer, model
     
-    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True, fix_mistral_regex=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=CONFIG.QUANTIZATION.value, device_map="auto" if CONFIG.DEVICE=="cuda" else None, trust_remote_code=True)
     return tokenizer, model

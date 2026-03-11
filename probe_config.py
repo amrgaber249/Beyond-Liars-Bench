@@ -32,8 +32,8 @@ class ExperimentConfig:
     # --- Models to Benchmark ---
     MODELS_TO_TEST: List[str] = field(default_factory=lambda: [
         # "distilgpt2"
-        # "meta-llama/Llama-3.3-70B-Instruct"
-        "mistralai/Mistral-Small-3.1-24B-Instruct-2503"
+        "meta-llama/Llama-3.3-70B-Instruct"
+        # "mistralai/Mistral-Small-3.1-24B-Instruct-2503"
     ])
 
     # --- Hardware ---
