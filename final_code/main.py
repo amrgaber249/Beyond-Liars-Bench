@@ -15,7 +15,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from config import CONFIG
-from utils import print_info, show_device_info, calculate_extended_metrics, plot_roc_curves, plot_score_distribution
+from utils import print_info, show_device_info, calculate_extended_metrics, plot_roc_curves, plot_score_distribution, plot_loss_curve
 from data_utils import load_train_data, load_eval_datasets
 from activations import extract_and_save_activations, load_saved_activations, activation_filename
 from models_sae import load_model, load_sae_model

@@ -194,7 +194,9 @@ def load_eval_datasets(path_str: str) -> Dict[str, List[Dict]]:
 def load_model(model_id):
     print(f"--- Loading {model_id} ---", flush=True)
     if CONFIG.DRY_RUN: return None, None
-    if "mistral" in model_name:
+    if model_name == "mistralai/Mistral-Small-3.1-24B-Instruct-2503":
+        # Special case for Mistral 3.1 since it has a custom architecture that isn't compatible with the standard AutoModelForCausalLM loader. 
+        # We use the multimodal loader which can handle both text and image inputs, but it also works fine for text-only models.
         model = AutoModelForImageTextToText.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,

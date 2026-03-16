@@ -23,12 +23,14 @@ class PyTorchLogisticProbe(nn.Module):
         super().__init__()
         self.linear = nn.Linear(input_dim, 1)
         self.scaler = StandardScaler()
+        self.loss_history = []
 
     def fit(self, X, y, epochs=None, batch_size=None, lr=None, weight_decay=0.0, checkpoint_dir=None, checkpoint_prefix="logistic", model_name=None, dataset_name=None, resume_from=None, save_every=1):
         epochs = epochs if epochs is not None else CONFIG.EPOCHS
         batch_size = batch_size if batch_size is not None else CONFIG.BATCH_SIZE
         lr = lr if lr is not None else CONFIG.LEARNING_RATE
         if len(X) == 0: return
+        self.loss_history = []
 
         checkpoint_dir = checkpoint_dir or CONFIG.CHECKPOINT_DIR
         _ensure_dir(checkpoint_dir)
@@ -50,6 +52,7 @@ class PyTorchLogisticProbe(nn.Module):
         for ep in range(epochs):
             np.random.shuffle(idxs)
             ep_loss = 0.0
+            batch_count = 0
             p = tqdm(range(0, Xt.shape[0], batch_size), desc=f"{checkpoint_prefix} ep{ep+1}/{epochs}", leave=False)
             for start in p:
                 b_idx = torch.tensor(idxs[start:start+batch_size], dtype=torch.long, device=CONFIG.DEVICE)
@@ -57,6 +60,10 @@ class PyTorchLogisticProbe(nn.Module):
                 loss = crit(self.linear(Xt[b_idx]), yt[b_idx])
                 loss.backward(); opt.step()
                 ep_loss += float(loss.item())
+                batch_count += 1
+
+            if batch_count > 0:
+                self.loss_history.append(ep_loss / batch_count)
 
             if save_every and ((ep + 1) % save_every == 0 or ep == epochs - 1):
                 ck_name = checkpoint_basename(checkpoint_prefix, model_name=model_name, dataset_name=dataset_name, epoch=ep+1)
@@ -162,6 +169,7 @@ class TruncatedPolynomialProbeWrapper:
         batch_size = batch_size if batch_size is not None else CONFIG.BATCH_SIZE
         lr = lr if lr is not None else CONFIG.LEARNING_RATE
         if len(X) == 0: return
+        self.loss_history = []
         
         checkpoint_dir = checkpoint_dir or CONFIG.CHECKPOINT_DIR
         _ensure_dir(checkpoint_dir)
@@ -178,6 +186,7 @@ class TruncatedPolynomialProbeWrapper:
         for ep in range(epochs):
             np.random.shuffle(idxs)
             ep_loss = 0.0
+            batch_count = 0
             p = tqdm(range(0, Xt.shape[0], batch_size), desc=f"TPC ep{ep+1}/{epochs}", leave=False)
             for start in p:
                 b_idx = torch.tensor(idxs[start:start+batch_size], dtype=torch.long, device=CONFIG.DEVICE)
@@ -188,6 +197,10 @@ class TruncatedPolynomialProbeWrapper:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
                 opt.step()
                 ep_loss += float(loss.item())
+                batch_count += 1
+
+            if batch_count > 0:
+                self.loss_history.append(ep_loss / batch_count)
 
             if save_every and ((ep + 1) % save_every == 0 or ep == epochs - 1):
                 ck_name = checkpoint_basename(checkpoint_prefix, model_name=model_name, dataset_name=dataset_name, epoch=ep+1)
@@ -216,12 +229,14 @@ class TruthUniversal2DProbeWrapper:
     def __init__(self, input_dim):
         self.model = TruthUniversal2DProbe(input_dim)
         self.scaler = StandardScaler()
+        self.loss_history = []
     
     def fit(self, X, y, epochs=None, batch_size=None, lr=None, weight_decay=0.0, ortho_penalty_alpha=0.0, checkpoint_dir=None, checkpoint_prefix="truth2d", model_name=None, dataset_name=None, resume_from=None, save_every=1):
         epochs = epochs if epochs is not None else CONFIG.EPOCHS
         batch_size = batch_size if batch_size is not None else CONFIG.BATCH_SIZE
         lr = lr if lr is not None else CONFIG.LEARNING_RATE
         if len(X) == 0: return
+        self.loss_history = []
         
         checkpoint_dir = checkpoint_dir or CONFIG.CHECKPOINT_DIR
         _ensure_dir(checkpoint_dir)
@@ -237,6 +252,8 @@ class TruthUniversal2DProbeWrapper:
         idxs = np.arange(Xt.shape[0])
         for ep in range(epochs):
             np.random.shuffle(idxs)
+            ep_loss = 0.0
+            batch_count = 0
             p = tqdm(range(0, Xt.shape[0], batch_size), desc=f"Truth2D ep{ep+1}/{epochs}", leave=False)
             for start in p:
                 b_idx = torch.tensor(idxs[start:start+batch_size], dtype=torch.long, device=CONFIG.DEVICE)
@@ -250,6 +267,11 @@ class TruthUniversal2DProbeWrapper:
                     loss = loss + ortho_penalty_alpha * ortho
                     
                 loss.backward(); opt.step()
+                ep_loss += float(loss.item())
+                batch_count += 1
+
+            if batch_count > 0:
+                self.loss_history.append(ep_loss / batch_count)
 
             if save_every and ((ep + 1) % save_every == 0 or ep == epochs - 1):
                 ck_name = checkpoint_basename(checkpoint_prefix, model_name=model_name, dataset_name=dataset_name, epoch=ep+1)
