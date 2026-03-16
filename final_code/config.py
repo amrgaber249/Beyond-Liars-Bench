@@ -18,14 +18,14 @@ class ExperimentConfig:
     # ==========================================
     TRAIN_PATH: str = "../train_data_azaria_mitchell"       # Directory containing training CSVs
     EVAL_PATH: str = "../eval_data_liars_bench"             # Directory containing evaluation JSONL files
-    OUTPUT_DIR: str = "./results_final"                    # Where plots and metric summaries are saved
+    OUTPUT_DIR: str = "./results_final/layer20"                    # Where plots and metric summaries are saved
     ACTIVATION_CACHE_DIR: str = "./activation_cache"       # Directory for HDF5/Memmap large tensor storage
 
     # ==========================================
     # Model Selection
     # ==========================================
     # List of HuggingFace model IDs to run in standard "Dense" mode (Path 1)
-    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["mistralai/Mistral-Small-24B-Instruct-2501"])
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["mistralai/Mistral-Small-3.1-24B-Instruct-2503"])
     
     # List of HuggingFace model IDs to run through the Sparse Autoencoder pipeline (Path 2)
     SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
@@ -69,9 +69,9 @@ class ExperimentConfig:
     # ==========================================
     # Probing Methodology
     # ==========================================
-    LAYER_PERCENTILE: float = 0.66              # If layer isn't explicit, probes layer at this depth fraction (e.g., 66% deep)
+    LAYER_PERCENTILE: float = 0.20              # If layer isn't explicit, probes layer at this depth fraction (e.g., 66% deep)
     LEARNING_RATE: float = 1e-3                 # Default LR for PyTorch-based probes
-    EPOCHS: int = 5                             # Default training epochs for probes
+    EPOCHS: int = 20                             # Default training epochs for probes
     BATCH_SIZE: int = 64                         # Default batch size for probes
     SEED: int = 42                              # Random seed for reproducible dataset splits and initialization
 

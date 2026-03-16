@@ -46,7 +46,7 @@ def load_model(model_id: str, ignore_mismatched: bool = True):
     device_map = "auto" if CONFIG.DEVICE.startswith("cuda") else None
     
 
-    if "mistral" in model_id.lower():
+    if model_id == "mistralai/Mistral-Small-3.1-24B-Instruct-2503":
         model = AutoModelForImageTextToText.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,
