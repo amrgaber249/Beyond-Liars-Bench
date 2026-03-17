@@ -76,9 +76,6 @@ def load_doluschat_data(n: int = 500, randomize_keep: bool = True, keep_prob: fl
         print_info(f"Failed to load DolusChat: {e}")
         return []
         
-    # We only want factual lies (not "I am a human" identity lies)
-    allowed_lie_types = {"fabrication", "denial", "contradiction", "direct", "factual"}
-    
     indices = list(range(len(ds)))
     random.shuffle(indices)
     
@@ -98,7 +95,7 @@ def load_doluschat_data(n: int = 500, randomize_keep: bool = True, keep_prob: fl
             lie_type = str(row.get("lie_type", "")).lower()
             
         if CONFIG.ONLY_FACTUAL_STATEMENTS:
-            if not any(a in lie_type for a in allowed_lie_types): continue
+            if not any(a in lie_type for a in CONFIG.ALLOWED_LIE_TYPES): continue
             
         truthful_raw = row["responses"].get("truthful", "") if "responses" in row and isinstance(row["responses"], dict) else row.get("truthful", "")
         deceptive_raw = row["responses"].get("deceptive", "") if "responses" in row and isinstance(row["responses"], dict) else row.get("deceptive", "")
