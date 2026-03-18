@@ -1,10 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name="Preloading Extractions"
+#SBATCH --job-name="LiarsBench"
 
 #SBATCH --partition=A40medium
 #SBATCH --time=08:00:00
 #SBATCH --gres=gpu:2
 #SBATCH --ntasks=1
+#SBATCH --exclude=node-02
 
 #SBATCH --output="slurm_logs/slurm_%j.out"
 #SBATCH --error="slurm_logs/slurm_%j.out"
