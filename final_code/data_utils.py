@@ -94,8 +94,8 @@ def load_doluschat_data(n: int = 500, randomize_keep: bool = True, keep_prob: fl
             row = dict(row)
             lie_type = str(row.get("lie_type", "")).lower()
             
-        if CONFIG.ONLY_FACTUAL_STATEMENTS:
-            if not any(a in lie_type for a in CONFIG.ALLOWED_LIE_TYPES): continue
+        if CONFIG.ONLY_ALLOWED_LIE_TYPES and lie_type not in CONFIG.ALLOWED_LIE_TYPES:
+            continue
             
         truthful_raw = row["responses"].get("truthful", "") if "responses" in row and isinstance(row["responses"], dict) else row.get("truthful", "")
         deceptive_raw = row["responses"].get("deceptive", "") if "responses" in row and isinstance(row["responses"], dict) else row.get("deceptive", "")
