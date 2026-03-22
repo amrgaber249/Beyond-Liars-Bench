@@ -46,7 +46,7 @@ class ExperimentConfig:
     ONLY_ALLOWED_LIE_TYPES: bool = False         # If True, filters DolusChat samples to only include those with lie types in ALLOWED_LIE_TYPES
     ALLOWED_LIE_TYPES = {                       # All used lie types in DolusChat (for reference and filtering)
         "omission"
-        # "exaggeration"
+        "exaggeration"
         # "fabrication"
     }
     
