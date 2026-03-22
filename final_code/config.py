@@ -25,10 +25,10 @@ class ExperimentConfig:
     # Model Selection
     # ==========================================
     # List of HuggingFace model IDs to run in standard "Dense" mode (Path 1)
-    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["mistralai/Mistral-Small-3.1-24B-Instruct-2503"])
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
     
     # List of HuggingFace model IDs to run through the Sparse Autoencoder pipeline (Path 2)
-    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
+    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-27b"])
 
     # ==========================================
     # Data Sampling Options
@@ -43,7 +43,7 @@ class ExperimentConfig:
     # ==========================================
     INCLUDE_DOLUSCHAT_IN_TRAIN: bool = True     # Whether to append synthetic lies/truths to the training set
     DOLUSCHAT_SIZE: int = 1000                  # Number of samples to pull from DolusChat
-    ONLY_ALLOWED_LIE_TYPES: bool = False         # If True, filters DolusChat samples to only include those with lie types in ALLOWED_LIE_TYPES
+    ONLY_ALLOWED_LIE_TYPES: bool = True         # If True, filters DolusChat samples to only include those with lie types in ALLOWED_LIE_TYPES
     ALLOWED_LIE_TYPES = {                       # All used lie types in DolusChat (for reference and filtering)
         "omission"
         # "exaggeration"
@@ -53,14 +53,16 @@ class ExperimentConfig:
     # ==========================================
     # Sparse Autoencoder (SAE) Parameters
     # ==========================================
-    SAE_SOURCE: str = "none"             # SAE backend: "none" | "gemma_scope"
-    SAE_RELEASE: str = ""  # Specific SAE release version
-    SAE_ID: str = ""          # Specific SAE model ID (defines target layer and sparsity)
-    SAE_HIDDEN_DIM: int = 5120                    # Dummy dimension for local SAE fallback (if Gemma Scope isn't used)
+    SAE_SOURCE: str = "gemma_scope"             # SAE backend: "none" | "gemma_scope"
+    SAE_RELEASE: str = "gemma-scope-27b-pt-res-canonical"  # Specific SAE release version
+    SAE_ID: str = "layer_31/width_131k/canonical"          # Specific SAE model ID (defines target layer and sparsity)
+    # Matches the width_131k
+    SAE_HIDDEN_DIM: int = 131072                    # Dummy dimension for local SAE fallback (if Gemma Scope isn't used)
     SAE_EPOCHS: int = 2                         # Epochs for training a local SAE (if applicable)
     SAE_BATCH: int = 2                          # Batch size for local SAE training
     SAE_L1_LAMBDA: float = 1e-3                 # L1 regularization penalty for local SAE sparsity
-    SAE_TARGET_LAYER: int = 12                  # Explicit layer target if not derived automatically
+    # Layer 31 is exactly 67% deep (46 total layers). 131k width is the high-fidelity standard.
+    SAE_TARGET_LAYER: int = 31                  # Explicit layer target if not derived automatically
 
     # ==========================================
     # Hardware & Inference Parameters
