@@ -18,7 +18,7 @@ class ExperimentConfig:
     # ==========================================
     TRAIN_PATH: str = "../train_data_azaria_mitchell"       # Directory containing training CSVs
     EVAL_PATH: str = "../eval_data_liars_bench"             # Directory containing evaluation JSONL files
-    OUTPUT_DIR: str = "./results_final/mistral"                    # Where plots and metric summaries are saved
+    OUTPUT_DIR: str = "./results_final/gemma/with_SAE"                    # Where plots and metric summaries are saved
     ACTIVATION_CACHE_DIR: str = "./activation_cache"       # Directory for HDF5/Memmap large tensor storage
 
     # ==========================================
@@ -43,12 +43,12 @@ class ExperimentConfig:
     # ==========================================
     INCLUDE_DOLUSCHAT_IN_TRAIN: bool = True     # Whether to append synthetic lies/truths to the training set
     DOLUSCHAT_SIZE: int = 1000                  # Number of samples to pull from DolusChat
-    ONLY_ALLOWED_LIE_TYPES: bool = True         # If True, filters DolusChat samples to only include those with lie types in ALLOWED_LIE_TYPES
-    ALLOWED_LIE_TYPES = {                       # All used lie types in DolusChat (for reference and filtering)
+    ONLY_ALLOWED_LIE_TYPES: bool = False         # If True, filters DolusChat samples to only include those with lie types in ALLOWED_LIE_TYPES
+    ALLOWED_LIE_TYPES = [                       # All used lie types in DolusChat (for reference and filtering)
         "omission"
         "exaggeration"
-        # "fabrication"
-    }
+        "fabrication"
+    ]
     
     # ==========================================
     # Sparse Autoencoder (SAE) Parameters

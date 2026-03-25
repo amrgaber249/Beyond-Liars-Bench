@@ -2,7 +2,7 @@
 #SBATCH --job-name="LiarsBench"
 
 #SBATCH --partition=A40medium
-#SBATCH --time=08:00:00
+#SBATCH --time=24:00:00
 #SBATCH --gres=gpu:2
 #SBATCH --ntasks=1
 #SBATCH --exclude=node-02
