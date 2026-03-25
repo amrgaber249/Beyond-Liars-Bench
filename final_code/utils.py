@@ -118,12 +118,11 @@ def calculate_extended_metrics(y_true, y_scores):
     if len(np.unique(y_true)) < 2: return {}, {}
     fpr_array, tpr_array, thresholds = roc_curve(y_true, y_scores)
     auroc = roc_auc_score(y_true, y_scores)
-    
     plot_data = {"fpr": fpr_array, "tpr": tpr_array, "auc": auroc}
     metrics = {"AUROC": auroc}
     
-    # Calculate performance at strict specific thresholds
     targets = [0.01, 0.001, 0.0001]
+    
     for target_fpr in targets:
         valid_indices = np.where(fpr_array <= target_fpr)[0]
         idx = valid_indices[-1] if len(valid_indices) > 0 else 0
@@ -132,7 +131,13 @@ def calculate_extended_metrics(y_true, y_scores):
         actual_tnr = 1.0 - actual_fpr
         bal_acc = (actual_tpr + actual_tnr) / 2.0
         
-        suffix = f"{int(target_fpr*100)}pctFPR" if target_fpr >= 0.001 else f"{target_fpr}"
+        if target_fpr == 0.01:
+            suffix = "1%FPR"
+        elif target_fpr == 0.001:
+            suffix = "0.1%FPR"
+        else:
+            suffix = "0.01%FPR"
+            
         metrics[f"BALANCEDACCURACYAT{suffix}"] = bal_acc
         metrics[f"RECALLAT{suffix}"] = actual_tpr
         metrics[f"FPRAT{suffix}"] = actual_fpr
@@ -141,7 +146,6 @@ def calculate_extended_metrics(y_true, y_scores):
     tp = np.sum((y_pred == 1) & (y_true == 1))
     fn = np.sum((y_pred == 0) & (y_true == 1))
     metrics["RECALL"] = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    
     return metrics, plot_data
 
 # ==========================================
