@@ -18,17 +18,17 @@ class ExperimentConfig:
     # ==========================================
     TRAIN_PATH: str = "../train_data_azaria_mitchell"       # Directory containing training CSVs
     EVAL_PATH: str = "../eval_data_liars_bench"             # Directory containing evaluation JSONL files
-    OUTPUT_DIR: str = "./results_final/gemma/with_SAE"                    # Where plots and metric summaries are saved
+    OUTPUT_DIR: str = "./results_final/gemma/without_SAE"                    # Where plots and metric summaries are saved
     ACTIVATION_CACHE_DIR: str = "./activation_cache"       # Directory for HDF5/Memmap large tensor storage
 
     # ==========================================
     # Model Selection
     # ==========================================
     # List of HuggingFace model IDs to run in standard "Dense" mode (Path 1)
-    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-27b"])
     
     # List of HuggingFace model IDs to run through the Sparse Autoencoder pipeline (Path 2)
-    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-27b"])
+    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
 
     # ==========================================
     # Data Sampling Options
