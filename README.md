@@ -1,4 +1,4 @@
-# Liars' Bench — Deception Detection Pipeline
+# Beyond Liars' Bench: The Impact of Lie Topology, Depth, and Sparsity on Deception Detection in LLMs
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)]
 [![License](https://img.shields.io/badge/license-MIT-green.svg)]
