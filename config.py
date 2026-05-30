@@ -16,9 +16,9 @@ class ExperimentConfig:
     # ==========================================
     # I/O Directories
     # ==========================================
-    TRAIN_PATH: str = "../train_data_azaria_mitchell"       # Directory containing training CSVs
-    EVAL_PATH: str = "../eval_data_liars_bench"             # Directory containing evaluation JSONL files
-    OUTPUT_DIR: str = "./results_final/gemma/without_SAE"                    # Where plots and metric summaries are saved
+    TRAIN_PATH: str = "./train_data_azaria_mitchell"       # Directory containing training CSVs
+    EVAL_PATH: str = "./eval_data_liars_bench"             # Directory containing evaluation JSONL files
+    OUTPUT_DIR: str = "./results/gemma/without_SAE"                    # Where plots and metric summaries are saved
     ACTIVATION_CACHE_DIR: str = "./activation_cache"       # Directory for HDF5/Memmap large tensor storage
 
     # ==========================================
