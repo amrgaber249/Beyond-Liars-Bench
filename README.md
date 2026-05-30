@@ -18,7 +18,7 @@ Follow these steps to configure and set up the pipeline on your local environmen
 ### 1. Clone the Repository
 
 ```bash
-git clone [https://github.com/amrgaber249/Beyond-Liars-Bench.git](https://github.com/amrgaber249/Beyond-Liars-Bench.git)
+git clone https://github.com/amrgaber249/Beyond-Liars-Bench.git
 cd Beyond-Liars-Bench
 
 ```
@@ -183,7 +183,5 @@ Evaluates the same Gemma model variant but bypasses the SAE pipeline completely 
     SAE_BATCH: int = 2
     SAE_L1_LAMBDA: float = 1e-3
     SAE_TARGET_LAYER: int = 31
-
-```
 
 ```
