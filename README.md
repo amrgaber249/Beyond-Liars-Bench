@@ -1,43 +1,39 @@
-# Beyond Liars' Bench: The Impact of Lie Topology, Depth, and Sparsity on Deception Detection in LLMs
+Here is the complete, master `README.md` file. It merges your old setup instructions, dependencies, repository links, and exact paper title with the new configuration guide, extended metrics explanation, and university acknowledgments.
 
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)]
-[![License](https://img.shields.io/badge/license-MIT-green.svg)]
+```markdown
+# Beyond Liars' Bench: The Impact of Lie Typology, Depth, and Sparsity on Deception Detection in LLMs
 
-A research-oriented pipeline to extract hidden activations from LLMs, cache them, train multiple probes (linear, low-rank polynomial, Truth2D, INLP, SAE-based features, Apollo follow-up trick), and evaluate on Liars' Bench-style datasets. Designed to be reproducible, checkpoint-friendly, and usable at small scale for quick experiments.
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
----
+### Work in Progress
+Please note that this repository is currently a work in progress. It contains the source code and experimental pipeline supporting the paper **"Beyond Liars' Bench: The Impact of Lie Typology, Depth, and Sparsity on Deception Detection in LLMs"**. 
 
-## Quick Start (Notebooks)
-
-Run this in a Jupyter / Colab notebook cell. This will install the runtime dependencies, including `bitsandbytes` and `sae-lens` (from GitHub). 
-
-> **Important:** `bitsandbytes` requires a supported CUDA toolkit / GPU runtime. If you run on CPU-only, remove it from the command.
-
-```bash
-pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes sae-lens
-```
+### Acknowledgments
+We would like to extend our sincere thanks to the **University of Bonn** for the opportunity to conduct this research within the **EMA Lab**. We are also highly appreciative of the computational resources provided, as all experiments and model training for this project were executed on the university's **Bender cluster**.
 
 ---
 
-## Local Setup
+## Quick Start / Local Setup 
 
-Follow these steps to set up the pipeline on your local machine.
+Follow these steps to configure and set up the pipeline on your local environment.
 
-**1. Clone the repository**
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/amrgaber249/Lab-AI-Alignment.git
-cd Lab-AI-Alignment
+git clone [https://github.com/amrgaber249/Beyond-Liars-Bench.git](https://github.com/amrgaber249/Beyond-Liars-Bench.git)
+cd Beyond-Liars-Bench
+
 ```
 
-**2. Create a virtual environment**
+### 2. Create a Virtual Environment
 
 ```bash
 python -m venv .venv
 
 ```
 
-**3. Activate the environment**
+### 3. Activate the Environment
 
 ```bash
 # On Linux/macOS:
@@ -48,48 +44,151 @@ source .venv/bin/activate
 
 ```
 
-**4. Install Dependencies**
-You can install the dependencies either via a quick one-line command OR by using a `requirements.txt` file. First, always make sure pip is up to date:
+### 4. Install Dependencies
+
+Ensure `pip` is updated to the latest version before installing dependencies:
 
 ```bash
 python -m pip install --upgrade pip
 
 ```
 
-**Option A: Direct One-Line Install (Quickest)**
+#### Using a `requirements.txt` File
 
-```bash
-pip install torch transformers datasets scikit-learn pandas numpy tqdm matplotlib seaborn h5py joblib accelerate safetensors bitsandbytes sae-lens
-
-```
-
-**Option B: Using `requirements.txt**`
-Create a `requirements.txt` file in your root directory containing:
-
-```text
-torch>=1.13.0
-transformers>=4.30.0
-datasets>=2.12.0
-scikit-learn>=1.2.0
-pandas>=1.5.0
-numpy>=1.24.0
-tqdm>=4.65.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-h5py>=3.8.0
-joblib>=1.2.0
-accelerate>=0.20.0
-safetensors>=0.3.0
-bitsandbytes>=0.39.0
-sae-lens>=6.37.6
-
-```
-
-Then run:
+Execute:
 
 ```bash
 pip install -r requirements.txt
 
 ```
 
-**5. Run the pipeline**
+---
+
+## Extended Metrics
+
+This repository includes additional evaluation metrics that were not featured in the original paper or the results directory due to time restrictions prior to publication. Specifically, the code evaluates the models at extremely strict False Positive Rates (FPR) to analyze performance under low-tolerance conditions.
+
+These metrics are calculated dynamically during evaluation and printed directly to the console. They include:
+
+* **AUROC** *(IN PAPER)*
+* **Recall** (Standard) *(IN PAPER)*
+* **Balanced Accuracy & Recall** at **1%**, **0.1%**, and **0.01% FPR**. *(NOT IN PAPER)*
+
+---
+
+## Configuration Guide (`config.py`)
+
+All global parameters are centralized within `config.py`.
+
+**File Location:** `config.py` is located in the root directory.
+
+**Key Parameters to Adjust:**
+
+* **Debugging and Testing:**
+* `TRAIN_SAMPLE_PERCENTAGE` / `EVAL_SAMPLE_PERCENTAGE`: Reduce from `1` to a small float (e.g., `0.005`) to run the pipeline on a minimal data subset. This is highly recommended for quick compilation and debugging checks.
+* `DRY_RUN`: Set to `True` to generate mock data and entirely bypass downloading large LLMs.
+
+
+* **Model Selection:**
+* `LLM_MODELS_TO_TEST`: Modify this list (e.g., `["google/gemma-2-27b"]`) for standard dense model runs.
+* `SAE_MODELS_TO_TEST`: Update this list to route the pipeline through a Sparse Autoencoder.
+
+
+* **Directory and Cache Management:**
+* `OUTPUT_DIR`: Defines the save location for plots and metric summaries. The script automatically appends subdirectories based on layer percentile and DolusChat configurations.
+* `CLEAN_ACTIVATION_CACHE`: Ensure this is set to `True` when altering dataset dimensions or sampling rates. This deletes obsolete HDF5 cache files on startup and prevents tensor shape mismatches.
+
+
+* **Hardware Optimization (OOM Prevention):**
+* `LLM_BATCH_SIZE`: Decrease this value (default is `8`) if the GPU encounters Out of Memory (OOM) errors during forward passes.
+* `USE_4BIT`: Set to `True` to load models using BitsAndBytes quantization. Maintain `DEVICE = "cuda"` for execution on the cluster.
+
+
+* **Probing and Synthetic Data Integration:**
+* `INCLUDE_DOLUSCHAT_IN_TRAIN`: Toggle this boolean to control the integration of the additional doluschat data in the training set.
+* `SELECTED_PROBES`: Adjust this list to test alternative probing methods (defaults include `logistic`, `tpc`, `inlp`, etc.).
+
+
+
+---
+
+## Example Configurations
+
+Below are three configuration templates for `config.py`. Use these code blocks as a reference when switching environments or turning the Sparse Autoencoder pipeline on or off.
+
+### 1. Mistral 24B (Dense Model Only)
+
+Runs the Mistral model in standard dense mode. The SAE pipeline is disabled, and the synthetic DolusChat data is fully integrated without being filtered by specific lie types. This is running on layer 12 on Mistral which is at ~20% of the model architecture.
+
+```python
+    # Model Selection
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["mistralai/Mistral-Small-3.1-24B-Instruct-2503"])
+    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: []) # if it contains a model the model will also use the same config to run as a SAE model afterwards (not recommended)
+
+    # DolusChat Synthetic Data Integration
+    INCLUDE_DOLUSCHAT_IN_TRAIN: bool = True
+    DOLUSCHAT_SIZE: int = 1000
+    ONLY_ALLOWED_LIE_TYPES: bool = False
+
+    # Sparse Autoencoder (SAE) Parameters (Disabled) (recommended to leave empty for SAE run)
+    SAE_SOURCE: str = "none"
+    SAE_RELEASE: str = ""
+    SAE_ID: str = ""
+    SAE_HIDDEN_DIM: int = 5120
+    SAE_EPOCHS: int = 2
+    SAE_BATCH: int = 2
+    SAE_L1_LAMBDA: float = 1e-3
+    SAE_TARGET_LAYER: int = 12
+
+```
+
+### 2. Gemma-2 27B (SAE Pipeline via Gemma Scope)
+
+Routes the Gemma model activations through the SAE pipeline using Gemma Scope. The standard dense testing list is empty, and the training phase isolates specific allowed lie types (e.g., omission). This is running on layer 31 on Gemma 2 which is at ~66% of the model architecture.
+
+```python
+    # Model Selection
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
+    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-27b"])
+
+    # DolusChat Synthetic Data Integration
+    INCLUDE_DOLUSCHAT_IN_TRAIN: bool = True
+    DOLUSCHAT_SIZE: int = 1000
+    ONLY_ALLOWED_LIE_TYPES: bool = True
+
+    # Sparse Autoencoder (SAE) Parameters (Enabled)
+    SAE_SOURCE: str = "gemma_scope"
+    SAE_RELEASE: str = "gemma-scope-27b-pt-res-canonical"
+    SAE_ID: str = "layer_31/width_131k/canonical"
+    SAE_HIDDEN_DIM: int = 131072
+    SAE_EPOCHS: int = 2
+    SAE_BATCH: int = 2
+    SAE_L1_LAMBDA: float = 1e-3
+    SAE_TARGET_LAYER: int = 31
+
+```
+
+### 3. Gemma-2 27B (Dense Model Only)
+
+Evaluates the same Gemma model variant but bypasses the SAE pipeline completely and analyze it as dense representations. This is also running on layer 31 on Gemma 2 which is at ~66% of the model architecture.
+
+```python
+    # Model Selection
+    LLM_MODELS_TO_TEST: List[str] = field(default_factory=lambda: ["google/gemma-2-27b"])
+    SAE_MODELS_TO_TEST: List[str] = field(default_factory=lambda: [])
+
+    # Sparse Autoencoder (SAE) Parameters (Enabled)
+    SAE_SOURCE: str = "gemma_scope"
+    SAE_RELEASE: str = "gemma-scope-27b-pt-res-canonical"
+    SAE_ID: str = "layer_31/width_131k/canonical"
+    SAE_HIDDEN_DIM: int = 131072
+    SAE_EPOCHS: int = 2
+    SAE_BATCH: int = 2
+    SAE_L1_LAMBDA: float = 1e-3
+    SAE_TARGET_LAYER: int = 31
+
+```
+
+```
+
+```
