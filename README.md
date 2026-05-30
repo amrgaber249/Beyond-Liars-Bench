@@ -1,6 +1,3 @@
-Here is the complete, master `README.md` file. It merges your old setup instructions, dependencies, repository links, and exact paper title with the new configuration guide, extended metrics explanation, and university acknowledgments.
-
-```markdown
 # Beyond Liars' Bench: The Impact of Lie Typology, Depth, and Sparsity on Deception Detection in LLMs
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -186,8 +183,6 @@ Evaluates the same Gemma model variant but bypasses the SAE pipeline completely 
     SAE_BATCH: int = 2
     SAE_L1_LAMBDA: float = 1e-3
     SAE_TARGET_LAYER: int = 31
-
-```
 
 ```
 
