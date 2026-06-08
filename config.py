@@ -39,6 +39,12 @@ class ExperimentConfig:
     EVAL_SAMPLE_PERCENTAGE: float = 1
 
     # ==========================================
+    # Contrastive Training Options
+    # ==========================================
+    USE_CONTRASTIVE_TRAIN: bool = True          # If True, overrides standard train loading with contrastive pairs
+    CONTRASTIVE_METHOD: str = "persona"         # Options: "persona" (Pretend you are...) or "pseudo_label" (This statement is...)
+
+    # ==========================================
     # DolusChat Synthetic Data Integration
     # ==========================================
     INCLUDE_DOLUSCHAT_IN_TRAIN: bool = True     # Whether to append synthetic lies/truths to the training set
