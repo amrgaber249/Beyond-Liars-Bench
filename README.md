@@ -75,11 +75,15 @@ These metrics are calculated dynamically during evaluation and printed directly 
 
 ## Configuration Guide (`config.py`)
 
-All global parameters are centralized within `config.py`.
+All global parameters are centralized within `config.py`, feel free to modify them as needed.
 
 **File Location:** `config.py` is located in the root directory.
 
-**Key Parameters to Adjust:**
+**Some Key Parameters to Adjust:**
+
+* **Train Dataset:**
+* `USE_CONTRASTIVE_TRAIN`: If `False` uses `Bag of Facts` instead of Contrastive pairs as train data.
+* `DOLUSCHAT_SIZE`: Size of the additional dataset.
 
 * **Debugging and Testing:**
 * `TRAIN_SAMPLE_PERCENTAGE` / `EVAL_SAMPLE_PERCENTAGE`: Reduce from `1` to a small float (e.g., `0.005`) to run the pipeline on a minimal data subset. This is highly recommended for quick compilation and debugging checks.
